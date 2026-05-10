@@ -23,6 +23,7 @@ class OrderRepositoryAdapter implements OrderRepository {
 
     @Override
     public Order save(Order order) {
+        // TODO (Semana 2): retry com Resilience4j para falhas transitórias do Postgres.
         OrderEntity existing = jpa.findById(order.id()).orElse(null);
         if (existing == null) {
             return toDomain(jpa.save(toEntity(order)));

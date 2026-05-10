@@ -1,0 +1,16 @@
+{
+  "id": 450789469,
+  "total_price": "199.65",
+  "currency": "USD",
+  "financial_status": "paid",
+  "fulfillment_status": null,
+  "line_items": [
+    { "id": 466157049, "title": "IPod Nano - 8gb", "quantity": 1, "price": "199.00" }
+  ],
+  "customer": {
+    "id": 207119551,
+    "first_name": "Bob",
+    "last_name": "Norman",
+    "email": "bob@example.com"
+  }
+}

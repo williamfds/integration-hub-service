@@ -4,7 +4,7 @@ CREATE TABLE orders (
     external_id     VARCHAR(128)    NOT NULL,
     status          VARCHAR(32)     NOT NULL,
     total_amount    NUMERIC(19, 4)  NOT NULL,
-    currency        CHAR(3)         NOT NULL,
+    currency        VARCHAR(3)      NOT NULL,
     customer_name   VARCHAR(255),
     customer_email  VARCHAR(255),
     created_at      TIMESTAMPTZ     NOT NULL,

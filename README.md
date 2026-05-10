@@ -1,89 +1,82 @@
-# Integration Hub Service 🛒
+# Integration Hub Service
 
-Recebe webhooks de plataformas de e-commerce, normaliza o payload para um
-modelo canônico interno e expõe uma API REST para consulta. A Semana 1
-cobre apenas o conector da **Shopify** e o domínio de **pedidos**.
+[![CI](https://github.com/williamfds/integration-hub-service/actions/workflows/ci.yml/badge.svg)](https://github.com/williamfds/integration-hub-service/actions/workflows/ci.yml)
+[![Java 21](https://img.shields.io/badge/Java-21-007396?logo=openjdk&logoColor=white)](https://openjdk.org/projects/jdk/21/)
+[![Spring Boot 3.4](https://img.shields.io/badge/Spring%20Boot-3.4-6DB33F?logo=spring&logoColor=white)](https://spring.io/projects/spring-boot)
+
+Recebe webhooks de plataformas de e-commerce, normaliza para um modelo
+canônico interno e expõe uma API REST de pedidos. Semana 1 cobre a Shopify.
 
 ## Por que normalizar
 
 Cada plataforma (Shopify, Nuvemshop, Mercado Livre) tem seu próprio
-formato de pedido, nomes de campo, enums e regras de status. Qualquer
-sistema downstream que precise reagir a "pedido pago" não deveria conhecer
-esses detalhes. O hub é a fronteira que traduz vocabulário externo para um
-modelo interno estável.
+formato, nomes de campo, enums e regras de status. Sistemas downstream
+que reagem a "pedido pago" não deveriam conhecer esses detalhes. O hub
+é a fronteira que traduz o vocabulário externo para um modelo interno
+estável.
 
 ## Arquitetura
 
 ```
-┌──────────────┐    POST /webhooks/shopify/orders     ┌────────────────────┐
-│   Shopify    │ ───────────────────────────────────► │  Webhook adapter   │
-└──────────────┘                                      │  (infra/web)       │
-                                                      └─────────┬──────────┘
-                                                                │ ShopifyOrderMapper
-                                                                ▼
-                                                      ┌────────────────────┐
-                                                      │  Use case          │
-                                                      │  RegisterIncoming  │
-                                                      └─────────┬──────────┘
-                                                                │ OrderRepository (porta)
-                                                                ▼
-                                                      ┌────────────────────┐
-                                                      │  JPA Adapter       │
-                                                      │  → PostgreSQL      │
-                                                      └────────────────────┘
+┌──────────────┐   POST /webhooks/shopify/orders   ┌────────────────────┐
+│   Shopify    │ ─────────────────────────────────►│  Webhook adapter   │
+└──────────────┘                                   │  (infra/web)       │
+                                                   └─────────┬──────────┘
+                                                             │ ShopifyOrderMapper
+                                                             ▼
+                                                   ┌────────────────────┐
+                                                   │  Use case          │
+                                                   │  RegisterIncoming  │
+                                                   └─────────┬──────────┘
+                                                             │ OrderRepository (porta)
+                                                             ▼
+                                                   ┌────────────────────┐
+                                                   │  JPA Adapter       │
+                                                   │  → PostgreSQL      │
+                                                   └────────────────────┘
 ```
 
-Hexagonal pragmática: o domínio só conhece a porta `OrderRepository`. JPA
-fica isolada em `infrastructure/persistence` e nunca aparece em `domain/`
-ou `application/`.
+Hexagonal pragmática: o domínio só conhece a porta `OrderRepository`.
+JPA fica isolada em `infrastructure/persistence` e não aparece em
+`domain/` ou `application/`.
 
-## Como rodar localmente
+## Rodar localmente
 
-1. `docker compose up -d db` — sobe o PostgreSQL 16.
-2. `./mvnw spring-boot:run` — sobe a aplicação em `http://localhost:8080`.
-3. Swagger UI em `http://localhost:8080/swagger-ui.html`.
+1. `docker compose up -d db`
+2. `./mvnw spring-boot:run`
+3. Swagger UI em `http://localhost:8080/swagger-ui.html`
 
 Para subir tudo via Docker: `docker compose up --build`.
 
-## Testar o webhook
+## Testar
 
 ```bash
 curl -X POST http://localhost:8080/webhooks/shopify/orders \
   -H "Content-Type: application/json" \
   -H "X-Webhook-Id: demo-1" \
   -d @docs/examples/shopify-order-created.json
-```
 
-Resposta esperada: `202 Accepted` com o pedido canônico no corpo.
-Em seguida:
-
-```bash
 curl http://localhost:8080/orders?platform=SHOPIFY
 ```
 
-## Testes
+`./mvnw verify` roda testes unitários e os de integração com
+Testcontainers (Postgres real, sem H2). Requer Docker.
 
-```bash
-./mvnw test
-```
+## Decisões registradas
 
-Os testes de integração usam **Testcontainers** (Postgres real). Não há
-banco em memória — o objetivo é validar SQL e Flyway reais.
+- [ADR-001](docs/adr/ADR-001-build-tool.md) — Maven
+- [ADR-002](docs/adr/ADR-002-migration-tool.md) — Flyway
+- [ADR-003](docs/adr/ADR-003-webhook-response-code.md) — 202 Accepted
 
-## Limitações conhecidas da Semana 1
+## Limitações da Semana 1
 
-- **Sem validação HMAC** do header `X-Shopify-Hmac-Sha256`. Qualquer
-  cliente que conheça a URL pode publicar. O TODO está marcado no
-  controller.
-- **Sem idempotência real**. O header `X-Webhook-Id` é apenas logado.
-  Reentregas da Shopify resultam em update de status — não em duplicata
-  graças à constraint `(platform, external_id)`, mas isso não substitui
-  idempotência de eventos.
-- **Sem retry/circuit breaker** no caminho de persistência.
+- Sem validação HMAC do header `X-Shopify-Hmac-Sha256`.
+- Sem idempotência real (o header `X-Webhook-Id` é apenas logado).
+- Sem retry/circuit breaker no caminho de saída.
 
 ## Próximos passos (Semana 2)
 
-- Idempotência baseada em `X-Webhook-Id` com Redis.
-- Validação HMAC do webhook Shopify.
-- Resilience4j (retry + circuit breaker) no caminho de saída.
+- Idempotência via `X-Webhook-Id` com Redis.
+- Validação HMAC da Shopify.
+- Resilience4j (retry + circuit breaker).
 - Conector Nuvemshop reusando o mesmo modelo canônico.

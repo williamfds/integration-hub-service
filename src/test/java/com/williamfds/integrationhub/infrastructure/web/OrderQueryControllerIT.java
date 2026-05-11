@@ -1,6 +1,6 @@
 package com.williamfds.integrationhub.infrastructure.web;
 
-import com.williamfds.integrationhub.AbstractPostgresIT;
+import com.williamfds.integrationhub.AbstractIntegrationIT;
 import com.williamfds.integrationhub.domain.model.Order;
 import com.williamfds.integrationhub.domain.model.OrderStatus;
 import com.williamfds.integrationhub.domain.model.Platform;
@@ -18,7 +18,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @AutoConfigureMockMvc
-class OrderQueryControllerIT extends AbstractPostgresIT {
+class OrderQueryControllerIT extends AbstractIntegrationIT {
 
     @Autowired MockMvc mvc;
     @Autowired OrderRepository orders;

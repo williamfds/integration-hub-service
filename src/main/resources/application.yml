@@ -14,6 +14,17 @@ spring:
   flyway:
     enabled: true
     baseline-on-migrate: true
+  data:
+    redis:
+      host: ${SPRING_DATA_REDIS_HOST:localhost}
+      port: ${SPRING_DATA_REDIS_PORT:6379}
+      password: ${SPRING_DATA_REDIS_PASSWORD:}
+  rabbitmq:
+    host: ${SPRING_RABBITMQ_HOST:localhost}
+    port: ${SPRING_RABBITMQ_PORT:5672}
+    username: ${SPRING_RABBITMQ_USERNAME:guest}
+    password: ${SPRING_RABBITMQ_PASSWORD:guest}
+    virtual-host: ${SPRING_RABBITMQ_VHOST:/}
 
 server:
   port: 8080
@@ -23,3 +34,30 @@ server:
 springdoc:
   swagger-ui:
     path: /swagger-ui.html
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: when-authorized
+  health:
+    redis:
+      enabled: true
+    rabbit:
+      enabled: true
+
+integration:
+  idempotency:
+    ttl: PT24H
+  retry:
+    max-attempts: 5
+    initial-interval: PT1S
+    multiplier: 2.0
+    max-interval: PT30S
+  rate-limit:
+    shopify-webhook:
+      limit: 100
+      window: PT1M
